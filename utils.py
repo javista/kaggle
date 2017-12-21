@@ -102,7 +102,7 @@ class SpectogramDataset(Dataset, SpectogramParser):
             tmp_path = os.path.join(manifest_filepath,elem)
             tmp_path += '/*'
             self.file_list += glob.glob(tmp_path)
-            self.file_index.append('elem')
+            self.file_index.append(elem)
             self.size += 1
 
 
