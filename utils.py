@@ -87,25 +87,34 @@ class SpectogramDataset(Dataset, SpectogramParser):
         manifest_filepath - ./data/train/audio/ 처럼 실제 마지막 나눠져있는 폴더들이 들어가 있는 곳
     """
 
-    def __init__(self, audio_conf, manifest_filepath):
+    def __init__(self, audio_conf, manifest_filepath,train=True):
         """
         초기화 함수. label을 index로 변환하기 위한 딕셔너리 형태인 labels_map을 만들어야 한다.
         """
+        # 총 30개의 index를 분류한다. 하지만 test set에서는 아래 10개 이외의 것은 전부 extra로 한다.
         #yes, no, up, down, left, right, on, off, stop, go를 각각의 index로 부여한다
-        self.files = {'yes':0,'no':1,'up':2,'down':3,'left':4,'right':5,'on':6,'off':7,'stop':8,'go':9}
+        self.files = {'yes':0,'no':1,'up':2,'down':3,'left':4,'right':5,'on':6,'off':7,'stop':8,'go':9, 'bed':10,'bird':11,'cat':12,'dog':13,'eight':14,
+        'five':15,'four':16,'happy':17,'house':18,'marvin':19,'nine':20,'one':21,'right':22,'seven':23,'shella':24,'six':25,'three':26,'tree':27,'two':28,'wow':29,'zero':30,
+        }
         keys = list(self.files.keys())
         self.file_list = [] # 실제 wav 파일의 각 location들이 들어있는 리스트
         self.file_index = [] # file_list의 순서대로 어떠한 음인지, index가 들어있다.
         self.size = 0
 
-        for elem in keys:
-            tmp_path = os.path.join(manifest_filepath,elem)
-            tmp_path += '/*'
-            self.file_list += glob.glob(tmp_path)
-            self.file_index.append(elem)
-            self.size += 1
-
-
+        if(train):
+            for elem in keys:
+                tmp_path = os.path.join(manifest_filepath,elem)
+                tmp_path += '/*'
+                self.file_list += glob.glob(tmp_path)[0:int(len(glob.glob(tmp_path))*0.7)]
+                self.file_index += [elem]*len(glob.glob(tmp_path)[0:int(len(glob.glob(tmp_path))*0.7)])
+                self.size += len(glob.glob(tmp_path)[0:int(len(glob.glob(tmp_path))*0.7)])
+        else:
+            for elem in keys:
+                tmp_path = os.path.join(manifest_filepath,elem)
+                tmp_path += '/*'
+                self.file_list += glob.glob(tmp_path)[int(len(glob.glob(tmp_path))*0.7):]
+                self.file_index += [elem] * len(glob.glob(tmp_path)[int(len(glob.glob(tmp_path))*0.7):])
+                self.size += len(glob.glob(tmp_path)[int(len(glob.glob(tmp_path))*0.7):])
 
         super(SpectogramDataset, self).__init__(audio_conf)
 
@@ -129,3 +138,25 @@ class AudioDataLoader(DataLoader):
     """
     def __init__(self, *args, **kwargs):
         super(AudioDataLoader, self).__init__(*args, **kwargs)
+        self.collate_fn = _collate_fn
+
+
+def _collate_fn(batch):
+    """
+    현재 간헐적으로 길이가 맞지 않는 놈들이 있다.
+    이놈들을 161 X 101의 FloatTensor로 만들기 위한 collate_fn
+    input:
+        batch - List of dataset. dataset에서 샘플링한 것의 리스트이다.
+    output -  list. FloatTensor, list of labels
+    """
+    minibatch_size = len(batch)
+    inputs = torch.zeros(minibatch_size, 161, 101) # N X H X W
+    targets = []
+    for x in range(minibatch_size):
+        sample = batch[x]
+        tensor = sample[0]
+        target = sample[1]
+        seq_length = tensor.size(1)
+        inputs[x].narrow(1, 0, seq_length).copy_(tensor)
+        targets.append(target)
+    return [inputs, targets]
