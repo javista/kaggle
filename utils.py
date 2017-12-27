@@ -93,8 +93,9 @@ class SpectogramDataset(Dataset, SpectogramParser):
         """
         # 총 30개의 index를 분류한다. 하지만 test set에서는 아래 10개 이외의 것은 전부 extra로 한다.
         #yes, no, up, down, left, right, on, off, stop, go를 각각의 index로 부여한다
-        self.files = {'yes':0,'no':1,'up':2,'down':3,'left':4,'right':5,'on':6,'off':7,'stop':8,'go':9, 'bed':10,'bird':11,'cat':12,'dog':13,'eight':14,
-        'five':15,'four':16,'happy':17,'house':18,'marvin':19,'nine':20,'one':21,'right':22,'seven':23,'shella':24,'six':25,'three':26,'tree':27,'two':28,'wow':29,'zero':30,
+        # index로 변환하기 위한 함수
+        files = {'yes':0,'no':1,'up':2,'down':3,'left':4,'right':5,'on':6,'off':7,'stop':8,'go':9, 'bed':10,'bird':11,'cat':12,'dog':13,'eight':14,
+        'five':15,'four':16,'happy':17,'house':18,'marvin':19,'nine':20,'one':21,'seven':22,'shella':23,'six':24,'three':25,'tree':26,'two':27,'wow':28,'zero':29,
         }
         keys = list(self.files.keys())
         self.file_list = [] # 실제 wav 파일의 각 location들이 들어있는 리스트
