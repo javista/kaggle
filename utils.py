@@ -12,6 +12,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data import Dataset
 import glob
 import os
+import csv
 
 def load_audio(path):
     """
@@ -20,7 +21,11 @@ def load_audio(path):
     Output :
         오디오 파일의 numpy 형태. 자료형 : np
     """
-    sound, _ = torchaudio.load(path)
+    try:
+        sound, _ = torchaudio.load(path)
+    except:
+        print(path)
+        torchaudio.load(path)
     sound = sound.numpy()
     if len(sound.shape) > 1:
         if sound.shape[1] == 1:
@@ -87,14 +92,14 @@ class SpectogramDataset(Dataset, SpectogramParser):
         manifest_filepath - ./data/train/audio/ 처럼 실제 마지막 나눠져있는 폴더들이 들어가 있는 곳
     """
 
-    def __init__(self, audio_conf, manifest_filepath,train=True):
+    def __init__(self, audio_conf, manifest_filepath,batch_size,train=True):
         """
         초기화 함수. label을 index로 변환하기 위한 딕셔너리 형태인 labels_map을 만들어야 한다.
         """
         # 총 30개의 index를 분류한다. 하지만 test set에서는 아래 10개 이외의 것은 전부 extra로 한다.
         #yes, no, up, down, left, right, on, off, stop, go를 각각의 index로 부여한다
         # index로 변환하기 위한 함수
-        files = {'yes':0,'no':1,'up':2,'down':3,'left':4,'right':5,'on':6,'off':7,'stop':8,'go':9, 'bed':10,'bird':11,'cat':12,'dog':13,'eight':14,
+        self.files = {'yes':0,'no':1,'up':2,'down':3,'left':4,'right':5,'on':6,'off':7,'stop':8,'go':9, 'bed':10,'bird':11,'cat':12,'dog':13,'eight':14,
         'five':15,'four':16,'happy':17,'house':18,'marvin':19,'nine':20,'one':21,'seven':22,'shella':23,'six':24,'three':25,'tree':26,'two':27,'wow':28,'zero':29,
         }
         keys = list(self.files.keys())
@@ -118,6 +123,23 @@ class SpectogramDataset(Dataset, SpectogramParser):
                 self.size += len(glob.glob(tmp_path)[int(len(glob.glob(tmp_path))*0.7):])
 
         super(SpectogramDataset, self).__init__(audio_conf)
+
+        # remove wierd element
+       # tmp = [i for i, x in enumerate(self.file_list) if '.' in x ]
+       # print(len(tmp))
+       # for i in range(len(tmp)):
+       #     del self.file_list[tmp[i]]
+       #     del self.file_index[tmp[i]]
+       #     self.size -=1
+
+        if(self.size % batch_size != 0):
+            tmp_f = self.file_list[-1]
+            tmp_l = self.file_index[-1]
+            tobeadded = batch_size - (self.size % batch_size)
+            self.size += tobeadded
+            self.file_list += [tmp_f] * tobeadded
+            self.file_index += [tmp_l] * tobeadded
+
 
     def __getitem__(self, index):
 
